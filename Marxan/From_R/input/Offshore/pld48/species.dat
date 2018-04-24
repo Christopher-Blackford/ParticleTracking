@@ -1,0 +1,3 @@
+id,name,target,spf
+1,Local_retention_target,241.939880952381,1000
+2,Eigenvector_centrality_target,3.40352844641986,1000

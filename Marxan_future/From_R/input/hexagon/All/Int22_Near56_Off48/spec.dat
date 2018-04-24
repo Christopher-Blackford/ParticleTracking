@@ -1,0 +1,7 @@
+id,target,spf,name
+1,235.625,100,Intertidal_LR_target
+2,1.92210861024142,100,Intertidal_EC_target
+3,134.5,100,Nearshore_LR_target
+4,0.421359167739107,100,Nearshore_EC_target
+5,187,100,Offshore_LR_target
+6,5.31511688664409,100,Offshore_EC_target

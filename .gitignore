@@ -1,0 +1,26 @@
+#CHRIS' FILES TO IGNORE SINCE THEY ARE FULL OF HUGE DATA
+ConData
+ROMS_chris
+release_settlement
+output
+Con_df
+cuke_future
+
+
+Connectivity_between_MPA_Sarah
+Connectivity_between_MPA_Stephen
+
+Bias_release
+
+#BC Connectivity project ignore files
+Larvae_release
+Sarah_extent
+
+
+cuke_present
+output_keep_future
+
+#Annoying updates
+*.Rhistory
+.Rproj.user
+*.RData
