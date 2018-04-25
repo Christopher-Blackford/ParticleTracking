@@ -47,6 +47,14 @@ require(sp)
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/functions/my_point_in_poly.R")
 
 
+
+###################Initialize run with these important parameters
+
+Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
+                                    #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
+
+Make_depth_layers <- FALSE
+
 pld <- c(30)
 
 year <- as.numeric(c(1998:2007)) 
@@ -175,8 +183,8 @@ for (pld_time in 1:length(pld)){
     #Finding which polygons released larvae are in
     Released_larvae <- my.point.in.poly(Released_larvae, ConPoly) #takes many minutes
     #If you plot this file^^^, it only includes points within your study extent - it's doing some sort of merge with Conpoly
-    writeOGR(Released_larvae, dsn = "./BC_ConnectivityProject/StudyExtent/Larvae_release", layer = "Larvae_release", driver = "ESRI Shapefile", 
-             verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+    #writeOGR(Released_larvae, dsn = "./BC_ConnectivityProject/StudyExtent/Larvae_release", layer = "Larvae_release", driver = "ESRI Shapefile", 
+     #        verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
     
     
     if (Make_depth_layers == TRUE & year_time == 1 & pld_time == 1){
@@ -247,7 +255,7 @@ for (pld_time in 1:length(pld)){
     #In cases where the above loop isn't true, make sure you have release dataframe to merge with habitat dataframe later
     ###Taking biased release file and un-biasing your depth class files
     Released_larvae_df <- merge(Biased_release, Con_df, by = c("larvae_ID", "long0", "lat0", "Z0", "Poly_ID.x")) #this is a dumb way to merge
-    Released_larvae_df <- Released_larvae_df[(Released_larvae_df$Larv_code <= 100),] #change this 30 to min_release or something more automated at some point
+    Released_larvae_df <- Released_larvae_df[(Released_larvae_df$Larv_code <= 6100),] #change this 30 to min_release or something more automated at some point
     #Remove NAs for when settled and released don't line up
     Released_larvae_df <- Released_larvae_df[complete.cases(Released_larvae_df[,"Poly_ID.y"]),]
     Released_larvae_df <- Released_larvae_df[with(Released_larvae_df, order(Poly_ID.x, Poly_ID.y)), ]
@@ -268,11 +276,7 @@ for (pld_time in 1:length(pld)){
     
     ########################################################################
     ###For looping across depth classes
-    Habitat_classes <- list(Intertidal, Nearshore, Offshore)
-    Habitat_classes_names <- c("Intertidal", "Nearshore", "Offshore")
     
-    for (i in 1:length(Habitat_classes_names)){
-      
       my_table <- table(Habitat_classes[[i]]$Poly_ID.x, Habitat_classes[[i]]$Poly_ID.y)
       
       #As dataframe
@@ -284,28 +288,70 @@ for (pld_time in 1:length(pld)){
       df <- dplyr::rename(df, Poly_ID_Release = Var1, Poly_ID_Settle = Var2)
       
       
-      ###Local retention
-      df_Local_Retention <- df[which(df$Poly_ID_Release == df$Poly_ID_Settle & df$Freq > 0),]
-      df_Local_Retention <- df_Local_Retention[c("Poly_ID_Release", "Freq")]
-      df_Local_Retention <- dplyr::rename(df_Local_Retention, Poly_ID = Poly_ID_Release, Local_retention = Freq)
+      #Writing out csv transforms from shapefile to the attribute table of that shapefile
+      my_directory <- paste0("./BC_ConnectivityProject/output/Con_df/pld", pld[pld_time])
+      dir.create(my_directory)
+      dir.create(paste0(my_directory, "/years"))
+      write.csv(df, paste0(my_directory, "/years/", Con_df, "_year", year[year_time], "pld", pld[pld_time], ".csv"), row.names = F)
       
-      ###Eigenvector centrality
-      df_Eigen_Centrality <- graph.data.frame(df)
-      df_Eigen_Centrality <- eigen_centrality(df_Eigen_Centrality, directed=TRUE, weights=E(df_Eigen_Centrality)$Freq)$vector
-      df_Eigen_Centrality <- as.data.frame(df_Eigen_Centrality)
-      df_Eigen_Centrality$Poly_ID <- row.names(df_Eigen_Centrality)
-      row.names(df_Eigen_Centrality) <- 1:nrow(df_Eigen_Centrality)
-      df_Eigen_Centrality <- dplyr::rename(df_Eigen_Centrality, Eigenvector_centrality = df_Eigen_Centrality)
-      
-      #Merging these dataframes
-      Released_per_gridcell <- Habitat_classes[[i]]
-      Released_per_gridcell <- dplyr::count(Released_per_gridcell, Poly_ID.x)
-      Released_per_gridcell <- dplyr::rename(Released_per_gridcell, Poly_ID = Poly_ID.x, Larvae_released = n)
-      df_out <- merge(Released_per_gridcell, df_Local_Retention, by = "Poly_ID")
-      df_out <- merge(df_out, df_Eigen_Centrality, by = "Poly_ID")
-      df_out$percent_LR <- df_out$Local_retention/df_out$Larvae_released
-      
-      
-  #remi_in_poly <- my.point.in.poly(Released_larvae, grid)
-    
-    
+  } #closing year loop
+  
+  print(paste0("Finished pld", pld[pld_time]))
+} #closing pld loop
+
+rm(my_table)
+
+
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+#[6] Merging connectivity dataframes across years to get: 1) Dataframes describing connectivity 2) Shapefiles describing connectivity 
+
+for (pld_time in 1:length(pld)){
+  
+  filenames <- list.files(path= paste0("./BC_ConnectivityProject/output/Con_df/pld", pld[pld_time], "/years"), pattern= ".csv", full.names=TRUE, recursive=T)
+  
+  # load all files into a list
+  datalist <- lapply(filenames, read.csv)
+  
+  # set the names of the items in the list, so that you know which file it came from
+  datalist <- setNames(datalist,filenames)
+  
+  # Merging the dataframe (rbind the list)
+  dataset <- data.table::rbindlist(datalist, idcol="filename")
+  dataset <- data.frame(dataset)
+  dataset$filename <- NULL
+  rm(datalist)
+  
+  #Averaging
+  Con_df <- group_by(dataset, Poly_ID)
+  Con_df <- dplyr::summarise(Con_df, mean(Larvae_released), mean(Local_retention), sd(Local_retention), mean(Eigenvector_centrality), sd(Eigenvector_centrality), mean(percent_LR))
+  
+  #Renaming and writing out csv
+  colnames(Con_df) <- gsub("\\(", "_", colnames(Con_df)); colnames(Con_df) <- gsub("\\)", "", colnames(Con_df))
+  write.csv(Con_df, paste0("./output_keep/Con_df/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time], "/", Habitat_classes_names[j], "_pld", pld[pld_time], ".csv"), row.names = FALSE)
+  
+  #Writing out shapefile
+  ConPoly_new <- sp::merge(ConPoly, Con_df, by = "Poly_ID")
+  ConPoly_new <- spatialEco::sp.na.omit(ConPoly_new, col.name = "mean_Local_retention", margin=1) #Can turn off to look at all cells that don't have any retention
+  
+  shapefile_directory <- paste0("./output_keep/shapefiles/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time])
+  dir.create(shapefile_directory)
+  writeOGR(ConPoly_new, dsn = shapefile_directory, layer = paste0(Habitat_classes_names[j], "_pld", pld[pld_time]),
+         driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+  
+}
+
+writeLines("Finished everything! Yay, yay, yay, you the best! \nClick here for dog: \nhttps://media.giphy.com/media/l2JhO5yaMLa93hVeM/giphy.gif") 
+
+##########
+#########
+########
+#######
+######
+#####
+####
+###
+##
+#END
