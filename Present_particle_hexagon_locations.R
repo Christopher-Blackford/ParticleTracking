@@ -50,7 +50,7 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/fun
 
 ###################Initialize run with these important parameters
 
-Bias_release_files_preloaded <- FALSE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
+Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
                                      #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 
 Make_depth_layers <- FALSE
@@ -253,12 +253,12 @@ for (pld_time in 1:length(pld)){
         }
   
     Biased_release <- Biased_release[c("larvae_ID", "long0", "lat0", "Z0", "Poly_ID.x", "RAND", "Larv_code")]
-    write.csv(Biased_release, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_Release.csv"))
+    write.csv(Biased_release, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_61Release.csv"))
     assign(paste0(Habitat_classes_names[i], "_Release"), Biased_release)
     
     ###when Bias_release_files_preloaded == TRUE
     } else{print(paste0("Loading in previous ", Habitat_classes_names[i], " larval release file")) 
-    Biased_release <- read.csv(paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_Release.csv"))
+    Biased_release <- read.csv(paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_61Release.csv"))
     assign(paste0(Habitat_classes_names[i], "_Release"), Biased_release)
     }
       
@@ -282,7 +282,7 @@ for (pld_time in 1:length(pld)){
       Released_larvae_df <- Released_larvae_df[complete.cases(Released_larvae_df[,"Poly_ID.y"]),]
       Released_larvae_df <- Released_larvae_df[with(Released_larvae_df, order(Poly_ID.x, Poly_ID.y)), ]
       #write out final release bias file so it's obvious you only include 100 per cell
-      write.csv(Released_larvae_df, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/merged_bias_file/", Habitat_classes_names[i], "_bias_controlled.csv"))
+      write.csv(Released_larvae_df, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/merged_bias_file/", Habitat_classes_names[i], "_61bias_controlled.csv"))
       
       assign(Habitat_classes_names[i], Released_larvae_df)
     }
