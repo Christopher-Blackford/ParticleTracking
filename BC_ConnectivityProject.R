@@ -55,7 +55,7 @@ Get_larvae_per_cell <- FALSE
 
 Control_for_bias_release <- FALSE
 
-pld <- c(30)
+pld <- c(30,60,120)
 
 year <- as.numeric(c(1998:2007))
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)

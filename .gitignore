@@ -2,23 +2,28 @@
 ConData
 ROMS_chris
 release_settlement
+Bias_release
 output
+
 Con_df
+cuke_present
 cuke_future
+
+output_keep_future
+
 Marxan
 Marxan_future
 
 Connectivity_between_MPA_Sarah
 Connectivity_between_MPA_Stephen
 
-Bias_release
+
 
 #BC Connectivity project ignore files
 BC_output
 BC_StudyExtent
 
-cuke_present
-output_keep_future
+
 
 #Annoying updates
 *.Rhistory
