@@ -61,7 +61,7 @@ pld <- c(3, 6, 27, 40, 90, 120)#Intertidal pld average: 22 #Nearshore pld averag
 pld <- c(3, 4, 6, 9, 21 , 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120)
 pld <- c(95, 105, 109)
 #pld 61 throws an error
-pld <- c(15)
+pld <- c(13,14)
 year <- as.numeric(c(1998:2007)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 

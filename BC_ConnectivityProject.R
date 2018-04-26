@@ -45,7 +45,6 @@ require(sp)
 ###################Loading functions:
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/functions/my_point_in_poly.R")
 
-setwd("K:/Christopher_PhD/Github/ParticleTracking")
 
 ###################Initialize run with these important parameters
 
