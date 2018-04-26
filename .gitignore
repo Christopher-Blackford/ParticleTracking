@@ -13,8 +13,8 @@ Connectivity_between_MPA_Stephen
 Bias_release
 
 #BC Connectivity project ignore files
-BC_ConnectivityProject
-
+BC_output
+BC_StudyExtent
 
 cuke_present
 output_keep_future

@@ -18,7 +18,6 @@
 #####
 #Clear workspace
 rm(list=ls())
-full.run.time <- proc.time() # 3.5 hours for pld 19 with Bias_release files already created
 
 ###################TABLE OF CONTENTS
 ###[1] Loading up larval release points
@@ -46,18 +45,20 @@ require(sp)
 ###################Loading functions:
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/functions/my_point_in_poly.R")
 
-
+setwd("K:/Christopher_PhD/Github/ParticleTracking")
 
 ###################Initialize run with these important parameters
 
 Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
                                     #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 
-Make_depth_layers <- FALSE
+Get_larvae_per_cell <- FALSE 
+
+Control_for_bias_release <- FALSE
 
 pld <- c(30)
 
-year <- as.numeric(c(1998:2007)) 
+year <- as.numeric(c(1998:2007))
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 
 
@@ -76,7 +77,7 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/1_L
 ### [2] Setting up study extent you will be using to clip your larval release points to your BC study extent
 
 #Clipping to your study extent
-BC_project_extent <- readOGR("./BC_ConnectivityProject/StudyExtent/Sarah_extent", "PU_ResizedTo10km")
+BC_project_extent <- readOGR("./BC_ConnectivityProject/BC_StudyExtent/Sarah_extent", "PU_ResizedTo10km")
 My_BC_projection <- proj4string(BC_project_extent)
 #Loading Remi's grid where larvae were released
 grid <- readOGR("./cuke_present/StudyExtent/Starting_grid", "grid")
@@ -99,16 +100,17 @@ ConPoly@data$Area <- rgeos::gArea(ConPoly, byid = TRUE)/100000000
 ConPoly <- ConPoly[(ConPoly$Area >= 0.95),]
 plot(ConPoly)
 
-writeOGR(ConPoly, dsn = "./BC_ConnectivityProject/StudyExtent/BCProject_Extent", layer = "BCProject_Extent", 
+writeOGR(ConPoly, dsn = "./BC_ConnectivityProject/BC_StudyExtent/BCProject_Extent", layer = "BCProject_Extent", 
          driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
 
+rm(BC_project_extent, grid, temp, Poly_ID) #If code doesn't work, this may be the culprit
 ########################################################################
 ########################################################################
 ########################################################################
 ########################################################################
 #[3a] Identifying settlement locations and linking to release locations
-pld_time <- 1
-year_time <- 1  
+#pld_time <- 1
+#year_time <- 1  
 
 #####Initializing
 memory.limit(size=15000) #need to manually increase memory limit from default to process across years/pld
@@ -183,21 +185,23 @@ for (pld_time in 1:length(pld)){
     #Finding which polygons released larvae are in
     Released_larvae <- my.point.in.poly(Released_larvae, ConPoly) #takes many minutes
     #If you plot this file^^^, it only includes points within your study extent - it's doing some sort of merge with Conpoly
-    #writeOGR(Released_larvae, dsn = "./BC_ConnectivityProject/StudyExtent/Larvae_release", layer = "Larvae_release", driver = "ESRI Shapefile", 
+    #writeOGR(Released_larvae, dsn = "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release", layer = "Larvae_release", driver = "ESRI Shapefile", 
      #        verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
     
     
-    if (Make_depth_layers == TRUE & year_time == 1 & pld_time == 1){
+    if (year_time == 1 & pld_time == 1){
       Released_dataframe <- Released_larvae@data
       Released_dataframe <- Released_dataframe[,c("Poly_ID", "Area")]
-      counted <- count(Released_dataframe, Poly_ID)
+      counted <- dplyr::count(Released_dataframe, Poly_ID)
       counted$larv <- counted$n/61
       Released_dataframe <- dplyr::distinct(Released_dataframe, Poly_ID, .keep_all = TRUE)
       
       Released_layer <- sp::merge(ConPoly, Released_dataframe, by = "Poly_ID", all.x = FALSE)
       
-      writeOGR(Released_layer, dsn = "./BC_ConnectivityProject/StudyExtent/Larvae_release", layer = "Larvae_release_grid", driver = "ESRI Shapefile", 
-               verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+      #write.csv(counted, "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv")
+      
+      #writeOGR(Released_layer, dsn = "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release", layer = "Larvae_release_grid", driver = "ESRI Shapefile", 
+       #        verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
       }
     
     #Write out release grids for my (BC) extent
@@ -219,55 +223,17 @@ for (pld_time in 1:length(pld)){
     Con_df <- Con_df[complete.cases(Con_df[,"Poly_ID.x"]),]
     
     
-    ########################################################################  
-    ###[4b] Controlling for biased release
-    #Need to set upper bound on how many larvae can be released from grid cell since areas closer to shore will have more larvae released
-    #Don't need to set lower bound since I'm assuming cells where not a lot of larvae released are areas where not a lot of that depth class exists
-    if (Bias_release_files_preloaded == FALSE & year_time == 1 & pld_time == 1){
+    ########################################################################
+    ########################################################################
+    ########################################################################
+    ########################################################################
+    #[4a-b] BC Controlling for biased release
+    
+    if (Control_for_bias_release == TRUE){
+      source("K:/Christopher_PhD/Github/ParticleTracking/BC_ConnectivityProject/BC_Controlling_for_biased_release.R")
       
-      Biased_release <- Con_df
-      set.seed(1)
-      Biased_release$RAND <- sample(1:nrow(Biased_release), nrow(Biased_release), replace=F)
-      Biased_release <- Biased_release[with(Biased_release, order(Poly_ID.x, RAND)), ]
-      
-      Biased_release$Larv_code <- NA #Need to fill it with something
-      Biased_release$Larv_code[1] <- 1
-      row.names(Biased_release) <- 1:nrow(Biased_release)
-      
-      ###Counting up number of larvae released in each cell. Takes over a day to do this for all habitat classes
-      for (release_count in 2:nrow(Biased_release)){
-        if (Biased_release$Poly_ID.x[release_count] == Biased_release$Poly_ID.x[release_count-1]){
-          Biased_release$Larv_code[release_count] = Biased_release$Larv_code[release_count-1] + 1}
-        else {Biased_release$Larv_code[release_count] = 1}
-      }
-      
-      Biased_release <- Biased_release[c("larvae_ID", "long0", "lat0", "Z0", "Poly_ID.x", "RAND", "Larv_code")]
-      write.csv(Biased_release, "./BC_ConnectivityProject/output/Release_bias/ReleaseBias.csv")
-      
-      ###when Bias_release_files_preloaded == TRUE
-    } else{print(paste0("Loading in previous ", Habitat_classes_names[i], " larval release file")) 
-      Biased_release <- read.csv("./BC_ConnectivityProject/output/Release_bias/ReleaseBias.csv")
-    }
+      }else {Released_larvae_df <- Con_df[complete.cases(Con_df[,"Poly_ID.y"]),]}
 
-    ###End of biased release file creation~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-    
-    #In cases where the above loop isn't true, make sure you have release dataframe to merge with habitat dataframe later
-    ###Taking biased release file and un-biasing your depth class files
-    Released_larvae_df <- merge(Biased_release, Con_df, by = c("larvae_ID", "long0", "lat0", "Z0", "Poly_ID.x")) #this is a dumb way to merge
-    Released_larvae_df <- Released_larvae_df[(Released_larvae_df$Larv_code <= 6100),] #change this 30 to min_release or something more automated at some point
-    #Remove NAs for when settled and released don't line up
-    Released_larvae_df <- Released_larvae_df[complete.cases(Released_larvae_df[,"Poly_ID.y"]),]
-    Released_larvae_df <- Released_larvae_df[with(Released_larvae_df, order(Poly_ID.x, Poly_ID.y)), ]
-    #write out final release bias file so it's obvious you only include 100 per cell
-    write.csv(Released_larvae_df, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/merged_bias_file/", Habitat_classes_names[i], "_bias_controlled.csv"))
-    
-    
-    ###now you have controlled for biased release~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-    ########################################################################
-    ########################################################################
-    
     ########################################################################
     ########################################################################
     ########################################################################
@@ -277,7 +243,7 @@ for (pld_time in 1:length(pld)){
     ########################################################################
     ###For looping across depth classes
     
-      my_table <- table(Habitat_classes[[i]]$Poly_ID.x, Habitat_classes[[i]]$Poly_ID.y)
+      my_table <- table(Released_larvae_df$Poly_ID.x, Released_larvae_df$Poly_ID.y)
       
       #As dataframe
       df <- as.data.frame(my_table)
@@ -287,12 +253,18 @@ for (pld_time in 1:length(pld)){
       df$Var2 <- as.numeric(df$Var2)
       df <- dplyr::rename(df, Poly_ID_Release = Var1, Poly_ID_Settle = Var2)
       
+      df <- base::merge(df, counted, by.x = "Poly_ID_Release", by.y = "Poly_ID")
+      #Correct to make Poly_ID match with Sarah's Object_ID
+      df$Poly_ID_Release <- df$Poly_ID_Release + 1; df$Poly_ID_Settle <- df$Poly_ID_Settle + 1 
+      
+      df$Percent <- (df$Freq/df$n)*100
+
       
       #Writing out csv transforms from shapefile to the attribute table of that shapefile
-      my_directory <- paste0("./BC_ConnectivityProject/output/Con_df/pld", pld[pld_time])
+      my_directory <- paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time])
       dir.create(my_directory)
       dir.create(paste0(my_directory, "/years"))
-      write.csv(df, paste0(my_directory, "/years/", Con_df, "_year", year[year_time], "pld", pld[pld_time], ".csv"), row.names = F)
+      write.csv(df, paste0(my_directory, "/years/Con_df_year", year[year_time], "pld", pld[pld_time], ".csv"), row.names = F)
       
   } #closing year loop
   
@@ -310,7 +282,7 @@ rm(my_table)
 
 for (pld_time in 1:length(pld)){
   
-  filenames <- list.files(path= paste0("./BC_ConnectivityProject/output/Con_df/pld", pld[pld_time], "/years"), pattern= ".csv", full.names=TRUE, recursive=T)
+  filenames <- list.files(path= paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/years"), pattern= ".csv", full.names=TRUE, recursive=T)
   
   # load all files into a list
   datalist <- lapply(filenames, read.csv)
@@ -325,21 +297,16 @@ for (pld_time in 1:length(pld)){
   rm(datalist)
   
   #Averaging
-  Con_df <- group_by(dataset, Poly_ID)
-  Con_df <- dplyr::summarise(Con_df, mean(Larvae_released), mean(Local_retention), sd(Local_retention), mean(Eigenvector_centrality), sd(Eigenvector_centrality), mean(percent_LR))
+  Con_df_All <- group_by(dataset, Poly_ID_Release, Poly_ID_Settle)
+  Con_df_All <- dplyr::summarise(Con_df_All, mean(n), mean(larv), mean(Freq), sd(Freq), mean(Percent), sd(Percent))
   
   #Renaming and writing out csv
-  colnames(Con_df) <- gsub("\\(", "_", colnames(Con_df)); colnames(Con_df) <- gsub("\\)", "", colnames(Con_df))
-  write.csv(Con_df, paste0("./output_keep/Con_df/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time], "/", Habitat_classes_names[j], "_pld", pld[pld_time], ".csv"), row.names = FALSE)
+  colnames(Con_df_All) <- gsub("\\(", "_", colnames(Con_df_All)); colnames(Con_df_All) <- gsub("\\)", "", colnames(Con_df_All))
+  Con_df_All <- dplyr::rename(Con_df_All, n = mean_n, larv = mean_larv)
+  write.csv(Con_df_All, paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/Con_df_pld", pld[pld_time], ".csv"), row.names = FALSE)
   
-  #Writing out shapefile
-  ConPoly_new <- sp::merge(ConPoly, Con_df, by = "Poly_ID")
-  ConPoly_new <- spatialEco::sp.na.omit(ConPoly_new, col.name = "mean_Local_retention", margin=1) #Can turn off to look at all cells that don't have any retention
-  
-  shapefile_directory <- paste0("./output_keep/shapefiles/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time])
-  dir.create(shapefile_directory)
-  writeOGR(ConPoly_new, dsn = shapefile_directory, layer = paste0(Habitat_classes_names[j], "_pld", pld[pld_time]),
-         driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+  #NO SHAPEFILE SECTION BECAUSE UNCLEAR HOW THAT WOULD BE USEFUL
+  #I DON'T HAVE INDIVIDUAL METRICS YET...
   
 }
 
