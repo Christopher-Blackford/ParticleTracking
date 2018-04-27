@@ -19,12 +19,12 @@ setwd("K:/Christopher_PhD/Github/ParticleTracking") #Need this to access subcode
 my_resolution <- 10000 #defines raster cell size and controls for biased larvae release
 #source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/2_Setting_up_hexagon_study_extent.R")
 
-Depth_class <- "Offshore"
+Depth_class <- "Nearshore"
 
-Top_percent <- 0.1
-Baseline_pld <- 48
-Min_pld <- 27
-Max_pld <- 90
+Top_percent <- 0.5
+Baseline_pld <- 56
+Min_pld <- 3
+Max_pld <- 120
 
 Depth_class_map <- readOGR(paste0("K:/Christopher_PhD/CH1_MPA/Displaying_study_region/CH1/Depth_class_maps/Depth_class_10km/hexagon/", Depth_class), Depth_class)
 
