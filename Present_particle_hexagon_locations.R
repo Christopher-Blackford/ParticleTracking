@@ -53,6 +53,7 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/fun
 Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
                                      #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 
+Make_count_csv <- TRUE
 Make_depth_layers <- FALSE
 
 my_resolution <- 10000 #defines hexagon cell size
@@ -62,7 +63,7 @@ pld <- c(22,56,48)
 pld <- c(3, 4, 6, 9, 21 , 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120) #PLD for all my species
 
 #pld 61 throws an error
-pld <- c(21, 23) #PLD for all my species
+pld <- c(54, 55, 57, 58)
 year <- as.numeric(c(1998:2007)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 
@@ -196,11 +197,15 @@ for (pld_time in 1:length(pld)){
       #If you plot this file^^^, it only includes points within your study extent - it's doing some sort of merge with Conpoly
       
       if (Make_depth_layers == TRUE & year_time == 1 & pld_time == 1){
+        source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/Making_depth_layers_hexagons.R")}
+
+      if (Make_count_csv == TRUE & year_time == 1 & pld_time == 1){
         Released_dataframe <- Released_larvae@data
         counted <- count(Released_dataframe, Poly_ID)
         counted$larv <- counted$n/61
-        source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/Making_depth_layers_hexagons.R")}
-
+        write.csv(counted, paste0("./output_keep/release_settlement/zLarvae_release_locations/", Habitat_classes_names[i], "_counted.csv"))
+        assign(paste0(Habitat_classes_names[i], "_counted"), counted)}
+      
       #Write out release grids for my (BC) extent
       #if (Bias_release_files_preloaded == FALSE & year_time == 1 & pld_time == 1){
         #writeOGR(Released_larvae, dsn = "./output_keep/release_settlement/zLarvae_release_locations/my_study_location", layer = paste0("BC_release_", Habitat_classes_names[i]), driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)}
