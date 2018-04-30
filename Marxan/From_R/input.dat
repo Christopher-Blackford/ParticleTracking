@@ -20,7 +20,7 @@ COSTTHRESH 12
 THRESHPEN1  0.00000000000000E+0000
 THRESHPEN2  0.00000000000000E+0000
 Input Files
-INPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan\From_R\input\hexagon\Nearshore\pld56
+INPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan\From_R\input\hexagon\Nearshore\pld58
 SPECNAME spec.dat
 PUNAME pu.dat
 PUVSPRNAME puvspr2.dat
@@ -37,7 +37,7 @@ SAVELOG 0
 SAVESNAPSTEPS 0
 SAVESNAPCHANGES 0
 SAVESNAPFREQUENCY 0
-OUTPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan\From_R\output\hexagon\Nearshore\pld56
+OUTPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan\From_R\output\hexagon\Nearshore\pld58
 Program control.
 RUNMODE 2
 MISSLEVEL 1

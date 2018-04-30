@@ -53,17 +53,17 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/fun
 Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
                                      #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 
-Make_count_csv <- TRUE
+Make_count_csv <- FALSE
 Make_depth_layers <- FALSE
 
 my_resolution <- 10000 #defines hexagon cell size
 
 pld <- c(22,56,48)
 #Intertidal pld average: 22 #Nearshore pld average: 56 #Offshore pld average: 48
-pld <- c(3, 4, 6, 9, 21 , 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120) #PLD for all my species
+pld <- c(3, 4, 6, 9, 21, 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120) #PLD for all my species
 
 #pld 61 throws an error
-pld <- c(54, 55, 57, 58)
+pld <- c(40, 45, 52, 58, 60)
 year <- as.numeric(c(1998:2007)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 
