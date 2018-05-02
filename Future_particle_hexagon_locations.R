@@ -52,27 +52,30 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/fun
 
 Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
 #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
+Safety <- "ON"
 
+Make_count_csv <- TRUE
 Make_depth_layers <- FALSE
+
 
 my_resolution <- 10000 #defines hexagon cell size
 
-pld <- c(20, 21, 22, 23, 24, 64, 65, 66, 67, 68, 69, 70)
 #Intertidal pld average: 22 #Nearshore pld average: 56 #Offshore pld average: 48
-pld <- c(21, 23, 55, 57, 47, 49)#Intertidal pld average: 22 #Nearshore pld average: 56 #Offshore pld average: 48
+pld <- c(3, 4, 6, 9, 21, 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120) #PLD for all my species
 
 
+pld <- c(22)
 year <- as.numeric(c(2098:2107)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
-year <- as.numeric(c(2107)) 
+
 
 ########################################################################
 ########################################################################
 ########################################################################
 ########################################################################
 ### [1] Loading up larval release points
-
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/1_Loading_up_larval_release_points.R") #Current and future release points are the same!
+
 ########################################################################
 ########################################################################
 ########################################################################
@@ -191,7 +194,16 @@ for (pld_time in 1:length(pld)){
       Released_larvae <- my.point.in.poly(Released_larvae, ConPoly) #takes many minutes
       #If you plot this file^^^, it only includes points within your study extent - it's doing some sort of merge with Conpoly
       
-      if (Make_depth_layers == TRUE & year_time == 1 & pld_time == 1){source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/Making_depth_layers_hexagons.R")}
+      if (Make_depth_layers == TRUE & year_time == 1 & pld_time == 1){
+        source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/Making_depth_layers_hexagons.R")}
+      
+      if (Make_count_csv == TRUE & year_time == 1 & pld_time == 1){
+        Released_dataframe <- Released_larvae@data
+        counted <- count(Released_dataframe, Poly_ID)
+        counted$larv <- counted$n/61
+        write.csv(counted, paste0("./output_keep_future/release_settlement/zLarvae_release_locations/", Habitat_classes_names[i], "_counted.csv"))
+        assign(paste0(Habitat_classes_names[i], "_counted"), counted)}
+      
 
       #Write out release grids for my (BC) extent
       #if (Bias_release_files_preloaded == FALSE & year_time == 1 & pld_time == 1){
@@ -228,7 +240,7 @@ for (pld_time in 1:length(pld)){
     
     ###Creating biased release file if needed~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     for (i in 1:length(Habitat_classes)){
-      if (Bias_release_files_preloaded == FALSE & year_time == 1 & pld_time == 1){
+      if (Bias_release_files_preloaded == FALSE & Safety == "OFF" & year_time == 1 & pld_time == 1){ #Adding Safety condition to make sure you don't create your own bias release files
         
         Biased_release <- Habitat_classes[[i]]
         set.seed(1)
@@ -271,7 +283,7 @@ for (pld_time in 1:length(pld)){
       
       Released_larvae_df <- Release_classes[[i]]
       Released_larvae_df <- merge(Released_larvae_df, Habitat_classes[[i]], by = c("larvae_ID", "long0", "lat0", "Z0", "Poly_ID.x")) #this is a dumb way to merge
-      Released_larvae_df <- Released_larvae_df[(Released_larvae_df$Larv_code <= 100),] #change this 30 to min_release or something more automated at some point
+      Released_larvae_df <- Released_larvae_df[(Released_larvae_df$Larv_code <= 6100),] #old way was 100 #100 because 10x10km will have 100 larvae spawn. 61 because we are releasing these 100 larvae for 61 days
       #Remove NAs for when settled and released don't line up
       Released_larvae_df <- Released_larvae_df[complete.cases(Released_larvae_df[,"Poly_ID.y"]),]
       Released_larvae_df <- Released_larvae_df[with(Released_larvae_df, order(Poly_ID.x, Poly_ID.y)), ]
@@ -422,13 +434,3 @@ proc.time() - full.run.time
 ########################################################################
 ########################################################################
 
-
-#Write out intertidal, nearshore, and offshore spatialextents
-#Poly_ID_release <- unique(na.omit(Habitat_classes$Poly_ID.x))
-#Poly_ID_settle <- unique(na.omit(Habitat_classes$Poly_ID.y))
-#Study_extent <- as.data.frame(unique(append(Poly_ID_release, Poly_ID_settle))); rm(Poly_ID_release, Poly_ID_settle)
-#names(Study_extent)[1] <- "Poly_ID"
-#Study_extent <- dplyr::arrange(Study_extent, Poly_ID) #fixing rownames
-#Study_extent <- merge(ConPoly, Study_extent, by = "Poly_ID", all.x = FALSE)
-#writeOGR(Study_extent, dsn = paste0("K:/Christopher_PhD/CH1_MPA/Displaying_study_region/CH1/Depth_class_maps/Depth_class_10km/", Habitat_classes_names[i]), layer = paste0(Habitat_classes_names[i], "_", my_resolution/1000, "km"), 
- #        driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
