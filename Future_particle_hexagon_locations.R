@@ -64,7 +64,8 @@ my_resolution <- 10000 #defines hexagon cell size
 pld <- c(3, 4, 6, 9, 21, 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120) #PLD for all my species
 
 
-pld <- c(22)
+pld <- c(55, 57, 58)
+pld <- c(22, 56, 48)
 year <- as.numeric(c(2098:2107)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 
@@ -89,11 +90,11 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/2_S
 ########################################################################
 ########################################################################
 #[3a] Identifying settlement locations and linking to release locations
-#pld_time <- 1
-#year_time <- 1  
+pld_time <- 1
+year_time <- 1  
 
 #####Initializing
-memory.limit(size=30000) #need to manually increase memory limit from default to process across years/pld
+memory.limit(size=50000) #need to manually increase memory limit from default to process across years/pld
 
 for (pld_time in 1:length(pld)){
   
@@ -107,6 +108,16 @@ for (pld_time in 1:length(pld)){
                        col_names = c("long","lat","Z","Out","site"),
                        col_types = cols("d","d","d","i","i")
     )
+
+    #Removing when no data in para files
+    inds <- which(lengths(datalist) %in% 0)
+    length_inds <- length(inds)
+    
+    if (length_inds >= 1){
+      filenames <- filenames[-c(inds)]
+      datalist <- datalist[-c(inds)]
+      print(paste0(length_inds, " empty files in year ", year[year_time]))
+      } else {print(paste0("No empty files in year ", year[year_time]))}
     
     # set the names of the items in the list, so that you know which file it came from
     datalist <- setNames(datalist,filenames)
@@ -259,12 +270,12 @@ for (pld_time in 1:length(pld)){
         }
         
         Biased_release <- Biased_release[c("larvae_ID", "long0", "lat0", "Z0", "Poly_ID.x", "RAND", "Larv_code")]
-        write.csv(Biased_release, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_Release.csv"))
+        write.csv(Biased_release, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_61Release.csv"))
         assign(paste0(Habitat_classes_names[i], "_Release"), Biased_release)
         
         ###when Bias_release_files_preloaded == TRUE
       } else{print(paste0("Loading in previous ", Habitat_classes_names[i], " larval release file")) 
-        Biased_release <- read.csv(paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_Release.csv"))
+        Biased_release <- read.csv(paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/", Habitat_classes_names[i], "_61Release.csv"))
         assign(paste0(Habitat_classes_names[i], "_Release"), Biased_release)
       }
       
@@ -288,7 +299,7 @@ for (pld_time in 1:length(pld)){
       Released_larvae_df <- Released_larvae_df[complete.cases(Released_larvae_df[,"Poly_ID.y"]),]
       Released_larvae_df <- Released_larvae_df[with(Released_larvae_df, order(Poly_ID.x, Poly_ID.y)), ]
       #write out final release bias file so it's obvious you only include 100 per cell
-      write.csv(Released_larvae_df, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/merged_bias_file/", Habitat_classes_names[i], "_bias_controlled.csv"))
+      write.csv(Released_larvae_df, paste0("./output_keep/release_settlement/hexagon/Release_bias/", Habitat_classes_names[i], "/merged_bias_file/", Habitat_classes_names[i], "_61bias_controlled.csv"))
       
       assign(Habitat_classes_names[i], Released_larvae_df)
     }
