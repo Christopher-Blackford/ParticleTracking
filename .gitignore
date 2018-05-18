@@ -1,6 +1,7 @@
 #CHRIS' FILES TO IGNORE SINCE THEY ARE FULL OF HUGE DATA
 ConData
 ROMS_chris
+zROMS_chris
 release_settlement
 Bias_release
 output
@@ -17,7 +18,7 @@ Marxan_future
 Connectivity_between_MPA_Sarah
 Connectivity_between_MPA_Stephen
 
-
+Thesis_Figures
 
 #BC Connectivity project ignore files
 BC_output
@@ -29,3 +30,4 @@ BC_StudyExtent
 *.Rhistory
 .Rproj.user
 *.RData
+zROMS_chris.zip

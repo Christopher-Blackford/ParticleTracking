@@ -64,8 +64,7 @@ my_resolution <- 10000 #defines hexagon cell size
 pld <- c(3, 4, 6, 9, 21, 24, 27, 28, 29, 31, 38, 40, 45, 52, 58, 60, 61, 78, 90, 91, 95, 105, 109, 120) #PLD for all my species
 
 
-pld <- c(55, 57, 58)
-pld <- c(22, 56, 48)
+pld <- c(95, 105, 109, 120)
 year <- as.numeric(c(2098:2107)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 
