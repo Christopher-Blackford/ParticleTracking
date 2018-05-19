@@ -13,7 +13,7 @@ rm(list=ls())
 
 ###################Initialize run with these important parameters
 
-Depth_class <- "Offshore"
+Depth_class <- "Nearshore"
 
 Top_percent <- 0.1
 
