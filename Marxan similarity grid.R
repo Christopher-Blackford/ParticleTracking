@@ -13,7 +13,7 @@ rm(list=ls())
 
 ###################Initialize run with these important parameters
 
-Depth_class <- "Nearshore"
+Depth_class <- "Offshore"
 
 Top_percent <- 0.1
 
@@ -85,6 +85,5 @@ for (j in 1:length(Marxan_list)){
 colnames(df) <- Depth_class_plds
 rownames(df) <- Depth_class_plds
 
-
-
+write.csv(df, paste0("./Marxan/Sensitivity/", Depth_class, "/", Top_percent, "Sensitivity_grid.csv"))
 

@@ -38,8 +38,8 @@ setwd("K:/Christopher_PhD/Github/ParticleTracking")
 #Nearshore PLDs: 3, 4, 6, 9, 24, 31, 38, 45, 52, 58, 60, 61, 78, 91, 95, 105, 109, 120                  #+/- 2 days around average 56: 56, 54, 55, 57
 #Offshore PLDs: 27, 45, 90                                #+/- 2 days around average 48: 48, 46, 47, 49, 50
 
-Depth_class <- "Intertidal" #choices are "Intertidal", "Nearshore", "Offshore"
-pld <- 40
+Depth_class <- "Nearshore" #choices are "Intertidal", "Nearshore", "Offshore"
+pld <- 105
 my_resolution <- 10000 #defines raster cell size and controls for biased larvae release
 target_percent_of_total <- 0.25
 
@@ -269,7 +269,9 @@ system(paste("K:/Christopher_PhD/Github/ParticleTracking/Marxan/From_R/Marxan_x6
 Marxan_output <- read.table(paste0(output_directory, "/mar_out_ssoln.dat"))
 Marxan_output <- rename(Marxan_output, c("V1" = "Poly_ID", "V2" = "SSOLN"))
 
-Marxan_spatial <- sp::merge(ConPoly, Marxan_output, by = "Poly_ID", all.x = TRUE)
+Depth_spatial <- readOGR(paste0("./Thesis_Figures/StudyRegion/Data/Depth_class_10km/", Depth_class), Depth_class)
+
+Marxan_spatial <- sp::merge(Depth_spatial, Marxan_output, by = "Poly_ID", all.x = TRUE)
 
 shapefile_directory <- paste0("./Marxan/To_shapefile/hexagon/", Depth_class, "/pld", pld)
 dir.create(shapefile_directory)
