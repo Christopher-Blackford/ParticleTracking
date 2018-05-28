@@ -10,10 +10,13 @@
 #Clear workspace
 rm(list=ls())
 
+require(rgdal)
+require(rgeos)
+require(tidyverse)
 
 ###################Initialize run with these important parameters
 
-Depth_class <- "Nearshore"
+Depth_class <- "Offshore"
 
 Top_percent <- 0.1
 
