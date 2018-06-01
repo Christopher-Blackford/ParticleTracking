@@ -54,7 +54,7 @@ Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for 
 #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 Safety <- "ON"
 
-Make_count_csv <- TRUE
+Make_count_csv <- FALSE
 Make_depth_layers <- FALSE
 
 
@@ -70,11 +70,12 @@ All_PLDs_done <- as.numeric(gsub(pattern = "pld", replacement = "", x = All_PLDs
 Pld_to_do <- All_PLDs[-which(All_PLDs_done %in% All_PLDs)]
 ###~~~
 
+Pld_to_do <- c(1) #temp
 
 pld <- Pld_to_do
 year <- as.numeric(c(2098:2107)) 
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
-
+year <- as.numeric(c(2099:2107)) 
 ########################################################################
 ########################################################################
 ########################################################################
@@ -372,7 +373,7 @@ for (pld_time in 1:length(pld)){
     Habitat_classes_names <- c("Intertidal", "Nearshore", "Offshore")
     
     for (i in 1:length(Habitat_classes_names)){
-      my_directory <- paste0("./output_keep_future/Con_df/hexagon/", Habitat_classes_names[i], "/pld", pld[pld_time])
+      my_directory <- paste0("./output_keep_future_AllPLD/Con_df/hexagon/", Habitat_classes_names[i], "/pld", pld[pld_time])
       dir.create(my_directory)
       dir.create(paste0(my_directory, "/years"))
       write.csv(Habitat_classes[[i]], paste0(my_directory, "/years/", Habitat_classes_names[i], "_year", year[year_time], "pld", pld[pld_time], ".csv"), row.names = F)
@@ -397,7 +398,7 @@ for (pld_time in 1:length(pld)){
   
   for (j in 1:length(Habitat_classes_names)){
     
-    filenames <- list.files(path= paste0("./output_keep_future/Con_df/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time], "/years"), pattern= ".csv", full.names=TRUE, recursive=T)
+    filenames <- list.files(path= paste0("./output_keep_future_AllPLD/Con_df/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time], "/years"), pattern= ".csv", full.names=TRUE, recursive=T)
     
     # load all files into a list
     datalist <- lapply(filenames, read.csv)

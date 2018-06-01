@@ -54,7 +54,7 @@ Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for 
 #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 Safety <- "ON"
 
-Make_count_csv <- TRUE
+Make_count_csv <- FALSE
 Make_depth_layers <- FALSE
 
 
