@@ -64,18 +64,17 @@ my_resolution <- 10000 #defines hexagon cell size
 
 #Getting all the PLDs that are 2 days away from each other to calculate how drastic shifts in PLD will be
 ###~~~
-All_PLDs <- seq(1, 120, by=2)
-All_PLDs_done <- list.files(path="./output_keep_future/Con_df/hexagon/Intertidal", full.names = FALSE)
+All_PLDs <- seq(1, 120, by=1)
+All_PLDs_done <- list.files(path="./output_keep_future_AllPLD/Con_df/hexagon/Intertidal", full.names = FALSE)
 All_PLDs_done <- as.numeric(gsub(pattern = "pld", replacement = "", x = All_PLDs_done))
 Pld_to_do <- All_PLDs[-which(All_PLDs_done %in% All_PLDs)]
 ###~~~
+####^^^ Needs fixing!
 
-Pld_to_do <- c(1) #temp
-
-pld <- Pld_to_do
-year <- as.numeric(c(2098:2107)) 
+pld <- c(16,26,53,86,100,104)#2,8,10,12,13,14
+year <- as.numeric(c(2098:2107))
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
-year <- as.numeric(c(2099:2107)) 
+
 ########################################################################
 ########################################################################
 ########################################################################
@@ -418,13 +417,13 @@ for (pld_time in 1:length(pld)){
     
     #Renaming and writing out csv
     colnames(Con_df) <- gsub("\\(", "_", colnames(Con_df)); colnames(Con_df) <- gsub("\\)", "", colnames(Con_df))
-    write.csv(Con_df, paste0("./output_keep_future/Con_df/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time], "/", Habitat_classes_names[j], "_pld", pld[pld_time], ".csv"), row.names = FALSE)
+    write.csv(Con_df, paste0("./output_keep_future_AllPLD/Con_df/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time], "/", Habitat_classes_names[j], "_pld", pld[pld_time], ".csv"), row.names = FALSE)
     
     #Writing out shapefile
     ConPoly_new <- sp::merge(ConPoly, Con_df, by = "Poly_ID")
     ConPoly_new <- spatialEco::sp.na.omit(ConPoly_new, col.name = "mean_Local_retention", margin=1) #Can turn off to look at all cells that don't have any retention
     
-    shapefile_directory <- paste0("./output_keep_future/shapefiles/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time])
+    shapefile_directory <- paste0("./output_keep_future_AllPLD/shapefiles/hexagon/", Habitat_classes_names[j], "/pld", pld[pld_time])
     dir.create(shapefile_directory)
     writeOGR(ConPoly_new, dsn = shapefile_directory, layer = paste0(Habitat_classes_names[j], "_pld", pld[pld_time]),
              driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)

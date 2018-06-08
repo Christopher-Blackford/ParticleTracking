@@ -16,7 +16,7 @@ require(tidyverse)
 
 ###################Initialize run with these important parameters
 
-Depth_class <- "Offshore"
+Depth_class <- "Intertidal"
 
 Top_percent <- 0.1
 
@@ -29,7 +29,7 @@ Top_percent <- 0.1
 Depth_class_Present_directory <- paste0("./Marxan/From_R/output/hexagon/", Depth_class)
 Depth_class_Present_PLDs <- list.files(path=Depth_class_Present_directory)
 
-Depth_class_Future_directory <- paste0("./Marxan_future/From_R/output/hexagon/", Depth_class)
+Depth_class_Future_directory <- paste0("./Marxan_future_AllPLD/From_R/output/hexagon/", Depth_class)
 Depth_class_Future_PLDs <- list.files(path=Depth_class_Future_directory)
 
 Marxan_Present <- NULL
@@ -96,5 +96,5 @@ for (j in 1:length(Marxan_Future)){
 colnames(df) <- paste0("Current ", Depth_class_Present_PLDs)
 rownames(df) <- paste0("Future ", Depth_class_Future_PLDs)
 
-write.csv(df, paste0("./Marxan_future/Sensitivity/Present_Future/", Depth_class, "/", Top_percent, "Sensitivity_grid.csv"))
+write.csv(df, paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class, "/", Top_percent, "Sensitivity_grid.csv"))
 
