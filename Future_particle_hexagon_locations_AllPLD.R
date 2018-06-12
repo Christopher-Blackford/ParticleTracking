@@ -67,11 +67,12 @@ my_resolution <- 10000 #defines hexagon cell size
 All_PLDs <- seq(1, 120, by=1)
 All_PLDs_done <- list.files(path="./output_keep_future_AllPLD/Con_df/hexagon/Intertidal", full.names = FALSE)
 All_PLDs_done <- as.numeric(gsub(pattern = "pld", replacement = "", x = All_PLDs_done))
-Pld_to_do <- All_PLDs[-which(All_PLDs_done %in% All_PLDs)]
+Pld_to_do <- All_PLDs[!(All_PLDs %in% All_PLDs_done)]
+Pld_to_do <- Pld_to_do[c(1:2)]
 ###~~~
 ####^^^ Needs fixing!
 
-pld <- c(16,26,53,86,100,104)#2,8,10,12,13,14
+pld <- Pld_to_do
 year <- as.numeric(c(2098:2107))
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
 
