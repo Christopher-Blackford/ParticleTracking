@@ -68,7 +68,6 @@ All_PLDs <- seq(1, 120, by=1)
 All_PLDs_done <- list.files(path="./output_keep_future_AllPLD/Con_df/hexagon/Intertidal", full.names = FALSE)
 All_PLDs_done <- as.numeric(gsub(pattern = "pld", replacement = "", x = All_PLDs_done))
 Pld_to_do <- All_PLDs[!(All_PLDs %in% All_PLDs_done)]
-Pld_to_do <- Pld_to_do[c(1:2)]
 ###~~~
 ####^^^ Needs fixing!
 

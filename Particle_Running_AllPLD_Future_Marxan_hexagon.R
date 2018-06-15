@@ -39,8 +39,8 @@ setwd("K:/Christopher_PhD/Github/ParticleTracking")
 #Nearshore PLDs: 1, 1, 1, 4, 19, 26, 33, 40, 47, 53, 55, 56, 73, 86, 90, 100, 104, 115     
 #Offshore PLDs: 22, 40, 85
 
-Depth_class <- "Offshore" #choices are "Intertidal", "Nearshore", "Offshore"
-pld <- 85
+Depth_class <- "Intertidal" #choices are "Intertidal", "Nearshore", "Offshore"
+pld <- 7
 my_resolution <- 10000 #defines raster cell size and controls for biased larvae release
 target_percent_of_total <- 0.25
 
@@ -69,6 +69,7 @@ rm(My_BC_projection, NAD_projection)
 ########################################################################
 ########################################################################
 ###[2] Generate Marxan core file from Particle_tracking output
+  
 #Read in Particle_tracking output
 R_file <- read.csv(paste0("./output_keep_future_AllPLD/Con_df/hexagon/", Depth_class, "/pld", pld, "/", Depth_class, "_pld", pld, ".csv"))
 
@@ -215,7 +216,7 @@ for (i in Polygon_list){
 
 write.table(Boundary_length, file=paste0(input_directory, "/boundary.dat"), row.names=FALSE, sep=",", quote=FALSE)
 
-rm(i)
+#rm(i)
 }
 
 
@@ -277,7 +278,6 @@ dir.create(shapefile_directory)
 
 writeOGR(Marxan_spatial, dsn = shapefile_directory, layer = paste0("Marx", Depth_class, "_pld", pld),
          driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
-
 
 proc.time() - marxan.time
 ##########

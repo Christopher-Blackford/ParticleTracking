@@ -38,8 +38,8 @@ setwd("K:/Christopher_PhD/Github/ParticleTracking")
 #Nearshore PLDs: 3, 4, 6, 9, 24, 31, 38, 45, 52, 58, 60, 61, 78, 91, 95, 105, 109, 120                  #+/- 2 days around average 56: 56, 54, 55, 57
 #Offshore PLDs: 27, 45, 90                                #+/- 2 days around average 48: 48, 46, 47, 49, 50
 
-Depth_class <- "Offshore" #choices are "Intertidal", "Nearshore", "Offshore"
-pld <- 90
+Depth_class <- "Intertidal" #choices are "Intertidal", "Nearshore", "Offshore"
+pld <- 2
 my_resolution <- 10000 #defines raster cell size and controls for biased larvae release
 target_percent_of_total <- 0.25
 
