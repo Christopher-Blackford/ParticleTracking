@@ -14,12 +14,13 @@ require(rgdal)
 require(rgeos)
 require(tidyverse)
 
+
 ###################Initialize run with these important parameters
 
-Depth_class <- "Nearshore"
-Average_pld <- 56
+Depth_class <- "Intertidal"
+#Average_pld <- 22
 
-Contraction_length <- 5
+Contraction_length <- 1
 Top_percent <- 0.1
 
 ########################################################################
@@ -28,25 +29,30 @@ Top_percent <- 0.1
 ########################################################################
 ###[1] Getting all PLDs for a Depth class
 
+###Defining present PLDs of species in depth class
 Depth_class_Present_directory <- paste0("./Marxan/From_R/output/hexagon/", Depth_class)
 PLDs <- list.files(path=Depth_class_Present_directory)
 PLDs <- as.numeric(gsub(pattern = "pld", replacement = "", PLDs))
-#Temp need to remove average for PLD
-PLDs <- PLDs[-which(PLDs==Average_pld)] 
+#Do you want to remove mean PLD from analysis?
+#PLDs <- PLDs[-which(PLDs==Average_pld)] 
 
 Depth_class_Present_directory <- paste0("./Marxan/From_R/output/hexagon/", Depth_class, "/pld", PLDs)
 Depth_class_Present_PLDs <- list.files(path=Depth_class_Present_directory, pattern = "ssoln", full.names=TRUE)
 Depth_class_Present_PLDs
 
-#Future contracted
+
+###Applying a contracted PLD in the future
 PLDs <- sort(PLDs)
 Future_PLDs <- PLDs - Contraction_length
+
+#If contraction leads to a negative PLD, just put the PLD = 1
 for (i in 1:length(Future_PLDs)){
   if (Future_PLDs[i] < 0){
     Future_PLDs[i] = 1
     }else{}
 }
 
+#Directory management
 Depth_class_Future_directory <- paste0("./Marxan_future_AllPLD/From_R/output/hexagon/", Depth_class, "/pld", Future_PLDs)
 
 Depth_class_Future_PLDs <- list.files(path=Depth_class_Future_directory, pattern = "ssoln", full.names=TRUE)
@@ -102,6 +108,32 @@ colnames(df) <- paste0("Future PLD contracted ", Contraction_length, " days")
 rownames(df) <- paste0("PLD ", PLDs)
 
 write.csv(df, paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class, "/", Top_percent, "Sensitivity_Contraction_", Contraction_length, ".csv"))
+
+
+########################################################################
+########################################################################
+########################################################################
+########################################################################
+###[3] Synthesizing various contracted PLDs into a meaninful figure
+
+Current_Future_df <- read.csv(paste0("./Marxan_future/Sensitivity/Present_Future/", Depth_class, "/0.1Sensitivity_vector.csv"))
+Current_Future_df <- dplyr::rename(Current_Future_df, PLD = X)
+Current_Future_df$PLD <- gsub(pattern = "Current to Future ", replacement = "", x = Current_Future_df$PLD)
+
+Contracted_PLDs <- list.files(path=paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class),
+                              pattern = "Sensitivity_Contraction", full.names = TRUE)
+
+
+for (i in 1:length(Contracted_PLDs)){
+  
+  Contracted_loop <- read.csv(Contracted_PLDs[i])
+  Contracted_loop <- dplyr::rename(Contracted_loop, PLD = X)
+  
+  Current_Future_df <- merge(Current_Future_df, Contracted_loop, by = "PLD")
+  
+  }
+
+write.csv(Current_Future_df, paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class, "/", Top_percent, "Sensitivity_Contraction_Total.csv"), row.names = FALSE)
 
 #####
 ####
