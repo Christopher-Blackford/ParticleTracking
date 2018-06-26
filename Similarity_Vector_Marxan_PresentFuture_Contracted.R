@@ -17,10 +17,12 @@ require(tidyverse)
 
 ###################Initialize run with these important parameters
 
-Depth_class <- "Intertidal"
+Depth_class <- "Offshore"
 #Average_pld <- 22
 
-Contraction_length <- 1
+
+
+Contraction_length <- 25
 Top_percent <- 0.1
 
 ########################################################################
@@ -121,7 +123,7 @@ Current_Future_df <- dplyr::rename(Current_Future_df, PLD = X)
 Current_Future_df$PLD <- gsub(pattern = "Current to Future ", replacement = "", x = Current_Future_df$PLD)
 
 Contracted_PLDs <- list.files(path=paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class),
-                              pattern = "Sensitivity_Contraction", full.names = TRUE)
+                              pattern = "Sensitivity_Contraction_", full.names = TRUE)
 
 
 for (i in 1:length(Contracted_PLDs)){
@@ -133,7 +135,7 @@ for (i in 1:length(Contracted_PLDs)){
   
   }
 
-write.csv(Current_Future_df, paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class, "/", Top_percent, "Sensitivity_Contraction_Total.csv"), row.names = FALSE)
+write.csv(Current_Future_df, paste0("./Marxan_future_AllPLD/Sensitivity/Present_FutureContracted/", Depth_class, "/", Top_percent, "Sensitivity_ContractionTotal.csv"), row.names = FALSE)
 
 #####
 ####

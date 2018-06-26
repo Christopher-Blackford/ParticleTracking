@@ -40,7 +40,7 @@ setwd("K:/Christopher_PhD/Github/ParticleTracking")
 #Offshore PLDs: 22, 40, 85
 
 Depth_class <- "Offshore" #choices are "Intertidal", "Nearshore", "Offshore"
-pld <- 84
+pld <- 90
 my_resolution <- 10000 #defines raster cell size and controls for biased larvae release
 target_percent_of_total <- 0.25
 
