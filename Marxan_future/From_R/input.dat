@@ -5,7 +5,7 @@ iball@maths.adelaide.edu.au
 hpossing@maths.adelaide.edu.au
 General Parameters
 VERSION 0.1
-BLM 1
+BLM 0
 PROP  0.00000000000000E+0000
 RANDSEED -1
 BESTSCORE -1.00000000000000E+0000
@@ -20,7 +20,7 @@ COSTTHRESH 12
 THRESHPEN1  0.00000000000000E+0000
 THRESHPEN2  0.00000000000000E+0000
 Input Files
-INPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan_future\From_R\input\hexagon\Intertidal\pld3
+INPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan_future\From_R\input\hexagon\All\Int22_Near56_Off48
 SPECNAME spec.dat
 PUNAME pu.dat
 PUVSPRNAME puvspr2.dat
@@ -37,7 +37,7 @@ SAVELOG 0
 SAVESNAPSTEPS 0
 SAVESNAPCHANGES 0
 SAVESNAPFREQUENCY 0
-OUTPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan_future\From_R\output\hexagon\Intertidal\pld3
+OUTPUTDIR K:\Christopher_PhD\Github\ParticleTracking\Marxan_future\From_R\output\hexagon\All
 Program control.
 RUNMODE 2
 MISSLEVEL 1
