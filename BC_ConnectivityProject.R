@@ -11,11 +11,6 @@
 #To build shapefiles showing connectivity on the BC coast
 #The analysis can be run across multiple years and for multiple PLD values
 
-#
-##
-###
-####
-#####
 #Clear workspace
 rm(list=ls())
 
@@ -33,27 +28,24 @@ rm(list=ls())
 ###
 
 ###################Loading required packages:
-require(data.table)
-require(tidyverse)
-require(rgdal)
-require(rgeos)
-require(maptools)
-require(igraph)
-require(spatialEco)
-require(sp)
+require(data.table); require(tidyverse); require(rgdal); require(rgeos)
+require(maptools); require(igraph); require(spatialEco); require(sp)
 
 ###################Loading functions:
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/functions/my_point_in_poly.R")
 
-
 ###################Initialize run with these important parameters
 
-Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
+#Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
                                     #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
 
-Get_larvae_per_cell <- FALSE 
 
-Control_for_bias_release <- FALSE
+Cell_cutoff_threshold <- 0 #Threshold that determines how much percent the clipped cell needs to be compared to Sarah's extent to be included
+Create_cutoff_graph <- TRUE #Do you want to create a histogram of how many cells get cut off by how much
+
+Calculate_Larvae_per_cell <- TRUE #Do you want to create a csv showing how many larvae are released in each cell
+
+#Control_for_bias_release <- FALSE
 
 pld <- c(30,60,120)
 
@@ -64,12 +56,10 @@ year <- as.numeric(c(1998:2007))
 ########################################################################
 ########################################################################
 ########################################################################
-########################################################################
 ### [1] Loading up larval release points
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/1_Loading_up_larval_release_points.R")
 
 
-########################################################################
 ########################################################################
 ########################################################################
 ########################################################################
@@ -83,33 +73,35 @@ grid <- readOGR("./cuke_present/StudyExtent/Starting_grid", "grid")
 NAD_projection <- proj4string(grid)
 
 #Dissolve into one polygon since so you can change grid dimensions
-grid <- spTransform(grid, BC_project_extent@proj4string) #For some reason not "identical" to My_BC_projection, check later
+grid <- spTransform(grid, BC_project_extent@proj4string)
 grid <- gUnaryUnion(grid)
 
-#Intersecting - don't know why this works and ConPoly2 <- grid[Ecozone_mask,] doesn't
+#Intersecting Sarah and Remi's extent
 ConPoly <- gIntersection(grid, BC_project_extent, byid = TRUE, drop_lower_td = TRUE) #This works, but you'll have to choose a shapefile that includes islands and doesn't cut-off at rivers 
+
 #Adding dataframe so you can create a shapefile of new study extent
-row.names(ConPoly) <- gsub(x = row.names(ConPoly), pattern = "1 ", ""); Poly_ID = row.names(ConPoly) 
-temp <- as.data.frame(Poly_ID)
-row.names(temp) <- row.names(ConPoly)
-ConPoly <- SpatialPolygonsDataFrame(ConPoly, temp)
+row.names(ConPoly) <- gsub(x = row.names(ConPoly), pattern = "1 ", ""); Poly_ID = row.names(ConPoly)
+temp <- as.data.frame(Poly_ID); temp$Poly_ID <- as.numeric(as.character(temp$Poly_ID))+1; row.names(temp) <- row.names(ConPoly)
+ConPoly <- SpatialPolygonsDataFrame(ConPoly, temp) #Poly_ID is equal to OBJECTID in Sarah's original file
 
-#Removing cells that weren't 95% of 10x10km
-ConPoly@data$Area <- rgeos::gArea(ConPoly, byid = TRUE)/100000000
-ConPoly <- ConPoly[(ConPoly$Area >= 0.95),]
-plot(ConPoly)
+#Finding area of each cell relative to Sarah's starting area
+ConPoly@data$Area <- rgeos::gArea(ConPoly, byid = TRUE)/10^8 
 
-writeOGR(ConPoly, dsn = "./BC_ConnectivityProject/BC_StudyExtent/BCProject_Extent", layer = "BCProject_Extent", 
+#Create graph of number of cells cutoff by your clip if you want
+if(Create_cutoff_graph == TRUE){source("./BC_ConnectivityProject/subcode/Cutoff graph.R")}
+
+#Removing cells that weren't a certain percentage of 10x10km
+ConPoly <- ConPoly[(ConPoly$Area >= Cell_cutoff_threshold),]
+writeOGR(ConPoly, dsn = "./BC_ConnectivityProject/BC_StudyExtent/BCProject_Extent", layer = paste0("BCProject_Extent_", Cell_cutoff_threshold), 
          driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
 
 rm(BC_project_extent, grid, temp, Poly_ID) #If code doesn't work, this may be the culprit
 ########################################################################
 ########################################################################
 ########################################################################
-########################################################################
 #[3a] Identifying settlement locations and linking to release locations
-#pld_time <- 1
-#year_time <- 1  
+pld_time <- 1
+year_time <- 2  
 
 #####Initializing
 memory.limit(size=15000) #need to manually increase memory limit from default to process across years/pld
@@ -135,8 +127,7 @@ for (pld_time in 1:length(pld)){
     dataset$site <- NA
     rm(datalist)
     
-    ###This process takes a long time ~ 5 - 10 minutes
-    #Reshaping dataset to take filename info and turning it into columns
+    ###Reshaping dataset to take filename info and turning it into columns - This process takes a long time ~ 5 - 10 minutes
     dataset <- dataset %>%
       mutate(temp=substr(filename,24,nchar(filename))) %>%
       separate(temp,c("temp_type_year","rday","bin","time"),"/",convert=TRUE) %>% 
@@ -166,8 +157,6 @@ for (pld_time in 1:length(pld)){
     
     ########################################################################
     ########################################################################
-    ########################################################################
-    ########################################################################
     #[4] Creating connectivity dataframes
     
     #Showing where each larvae begings and ends
@@ -187,25 +176,19 @@ for (pld_time in 1:length(pld)){
     #writeOGR(Released_larvae, dsn = "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release", layer = "Larvae_release", driver = "ESRI Shapefile", 
      #        verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
     
-    
-    if (year_time == 1 & pld_time == 1){
+    if (year_time == 1 & pld_time == 1 & Calculate_Larvae_per_cell == TRUE){
       Released_dataframe <- Released_larvae@data
       Released_dataframe <- Released_dataframe[,c("Poly_ID", "Area")]
       counted <- dplyr::count(Released_dataframe, Poly_ID)
-      counted$larv <- counted$n/61
-      Released_dataframe <- dplyr::distinct(Released_dataframe, Poly_ID, .keep_all = TRUE)
+      counted <- dplyr::rename(counted, Larvae_release_over_season = n)
+      counted$Larval_release_daily <- counted$Larvae_release_over_season/61 #Average should be 100 I think (400 for 20x20 = 100 for 10x10)
+      write.csv(counted, "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv")
       
-      Released_layer <- sp::merge(ConPoly, Released_dataframe, by = "Poly_ID", all.x = FALSE)
-      
-      #write.csv(counted, "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv")
-      
+      #Released_dataframe <- dplyr::distinct(Released_dataframe, Poly_ID, .keep_all = TRUE)
+      #Released_layer <- sp::merge(ConPoly, Released_dataframe, by = "Poly_ID", all.x = FALSE)
       #writeOGR(Released_layer, dsn = "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release", layer = "Larvae_release_grid", driver = "ESRI Shapefile", 
        #        verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
       }
-    
-    #Write out release grids for my (BC) extent
-    #if (Bias_release_files_preloaded == FALSE & year_time == 1 & pld_time == 1){
-    #writeOGR(Released_larvae, dsn = "./output_keep/release_settlement/zLarvae_release_locations/my_study_location", layer = paste0("BC_release_", Habitat_classes_names[i]), driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)}
     
     #Associate settled points with where they settled 
     xy <- subset(Settle_df, select = c(long, lat))
@@ -220,45 +203,29 @@ for (pld_time in 1:length(pld)){
     Con_df <- merge(Released_larvae@data, Settled_larvae@data, by = "larvae_ID", all = T)
     #Need to remove larvae spawning outside of my study extent
     Con_df <- Con_df[complete.cases(Con_df[,"Poly_ID.x"]),]
+    Released_larvae_df <- Con_df[complete.cases(Con_df[,"Poly_ID.y"]),]
     
-    
-    ########################################################################
-    ########################################################################
-    ########################################################################
     ########################################################################
     #[4a-b] BC Controlling for biased release
-    
-    if (Control_for_bias_release == TRUE){
-      source("K:/Christopher_PhD/Github/ParticleTracking/BC_ConnectivityProject/BC_Controlling_for_biased_release.R")
-      
-      }else {Released_larvae_df <- Con_df[complete.cases(Con_df[,"Poly_ID.y"]),]}
+    #IGNORE FOR NOW
+    #if (Control_for_bias_release == TRUE){source("K:/Christopher_PhD/Github/ParticleTracking/BC_ConnectivityProject/BC_Controlling_for_biased_release.R")}else {Released_larvae_df <- Con_df[complete.cases(Con_df[,"Poly_ID.y"]),]}
 
     ########################################################################
     ########################################################################
     ########################################################################
-    ########################################################################
-    #[5] Creating connectivity metrics for each depth class
-    
-    ########################################################################
-    ###For looping across depth classes
+    #[5] Creating connectivity metrics
     
       my_table <- table(Released_larvae_df$Poly_ID.x, Released_larvae_df$Poly_ID.y)
       
       #As dataframe
       df <- as.data.frame(my_table)
-      df$Var1 <- as.character(df$Var1)
-      df$Var1 <- as.numeric(df$Var1)
-      df$Var2 <- as.character(df$Var2)
-      df$Var2 <- as.numeric(df$Var2)
+      df$Var1 <- as.character(df$Var1); df$Var1 <- as.numeric(df$Var1); df$Var2 <- as.character(df$Var2); df$Var2 <- as.numeric(df$Var2)
       df <- dplyr::rename(df, Poly_ID_Release = Var1, Poly_ID_Settle = Var2)
       
-      df <- base::merge(df, counted, by.x = "Poly_ID_Release", by.y = "Poly_ID")
-      #Correct to make Poly_ID match with Sarah's Object_ID
-      df$Poly_ID_Release <- df$Poly_ID_Release + 1; df$Poly_ID_Settle <- df$Poly_ID_Settle + 1 
-      
-      df$Percent <- (df$Freq/df$n)*100
+      #Can probably remove these columns for now
+      df <- base::merge(df, counted, by.x = "Poly_ID_Release", by.y = "Poly_ID") #Make sure number of larvae being released from counted is accurate to the Release_df
+      df$Percent <- (df$Freq/df$Larvae_release_over_season)*100
 
-      
       #Writing out csv transforms from shapefile to the attribute table of that shapefile
       my_directory <- paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time])
       dir.create(my_directory)
@@ -271,7 +238,6 @@ for (pld_time in 1:length(pld)){
 } #closing pld loop
 
 rm(my_table)
-
 
 ########################################################################
 ########################################################################
@@ -295,9 +261,14 @@ for (pld_time in 1:length(pld)){
   dataset$filename <- NULL
   rm(datalist)
   
-  #Averaging
+  #Averaging - think this is better than summing for now
   Con_df_All <- group_by(dataset, Poly_ID_Release, Poly_ID_Settle)
-  Con_df_All <- dplyr::summarise(Con_df_All, mean(n), mean(larv), mean(Freq), sd(Freq), mean(Percent), sd(Percent))
+  Con_df_All <- dplyr::summarise(Con_df_All, mean(Freq), mean(Percent), mean(Larvae_release_over_season), mean(Larvae_release_daily), var(Freq), var(Percent))
+  
+  #WRITE OUT THIS FILE BUT ALSO CREATE ANOTHER FILE WHERE YOU COMPUTE EIGENVECTOR CENTRALITY AND BETWEENESS CENTRALITY
+  ##############
+  ##############
+  
   
   #Renaming and writing out csv
   colnames(Con_df_All) <- gsub("\\(", "_", colnames(Con_df_All)); colnames(Con_df_All) <- gsub("\\)", "", colnames(Con_df_All))
