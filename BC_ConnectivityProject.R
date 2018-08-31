@@ -29,29 +29,24 @@ rm(list=ls())
 
 ###################Loading required packages:
 require(data.table); require(tidyverse); require(rgdal); require(rgeos)
-require(maptools); require(igraph); require(spatialEco); require(sp)
+require(maptools); require(spatialEco); require(sp)
+#require(igraph);
 
 ###################Loading functions:
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/functions/my_point_in_poly.R")
 
 ###################Initialize run with these important parameters
 
-#Bias_release_files_preloaded <- TRUE #TRUE = Will use prior data to control for bias in number of larvae release per cell. 
-                                    #FALSE = Performs operation that randomly removes larval from polygons where too many larvae are released.
-
-
 Cell_cutoff_threshold <- 0 #Threshold that determines how much percent the clipped cell needs to be compared to Sarah's extent to be included
+
 Create_cutoff_graph <- TRUE #Do you want to create a histogram of how many cells get cut off by how much
 
 Calculate_Larvae_per_cell <- TRUE #Do you want to create a csv showing how many larvae are released in each cell
-
-#Control_for_bias_release <- FALSE
 
 pld <- c(30,60,120)
 
 year <- as.numeric(c(1998:2007))
 # ^ is equivalent to year <- c(1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007)
-
 
 ########################################################################
 ########################################################################
@@ -100,8 +95,8 @@ rm(BC_project_extent, grid, temp, Poly_ID) #If code doesn't work, this may be th
 ########################################################################
 ########################################################################
 #[3a] Identifying settlement locations and linking to release locations
-pld_time <- 1
-year_time <- 2  
+#pld_time <- 1
+#year_time <- 1  
 
 #####Initializing
 memory.limit(size=15000) #need to manually increase memory limit from default to process across years/pld
@@ -181,7 +176,7 @@ for (pld_time in 1:length(pld)){
       Released_dataframe <- Released_dataframe[,c("Poly_ID", "Area")]
       counted <- dplyr::count(Released_dataframe, Poly_ID)
       counted <- dplyr::rename(counted, Larvae_release_over_season = n)
-      counted$Larval_release_daily <- counted$Larvae_release_over_season/61 #Average should be 100 I think (400 for 20x20 = 100 for 10x10)
+      counted$Larvae_release_daily <- counted$Larvae_release_over_season/61 #Average should be 100 I think (400 for 20x20 = 100 for 10x10)
       write.csv(counted, "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv")
       
       #Released_dataframe <- dplyr::distinct(Released_dataframe, Poly_ID, .keep_all = TRUE)
@@ -265,19 +260,33 @@ for (pld_time in 1:length(pld)){
   Con_df_All <- group_by(dataset, Poly_ID_Release, Poly_ID_Settle)
   Con_df_All <- dplyr::summarise(Con_df_All, mean(Freq), mean(Percent), mean(Larvae_release_over_season), mean(Larvae_release_daily), var(Freq), var(Percent))
   
-  #WRITE OUT THIS FILE BUT ALSO CREATE ANOTHER FILE WHERE YOU COMPUTE EIGENVECTOR CENTRALITY AND BETWEENESS CENTRALITY
-  ##############
-  ##############
-  
-  
-  #Renaming and writing out csv
+  #Renaming columns to remove brackets and writing out dataframe
   colnames(Con_df_All) <- gsub("\\(", "_", colnames(Con_df_All)); colnames(Con_df_All) <- gsub("\\)", "", colnames(Con_df_All))
-  Con_df_All <- dplyr::rename(Con_df_All, n = mean_n, larv = mean_larv)
   write.csv(Con_df_All, paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/Con_df_pld", pld[pld_time], ".csv"), row.names = FALSE)
   
+  Con_df_table <- Con_df_All[c("Poly_ID_Release", "Poly_ID_Settle", "mean_Freq")]
+  
+  #Get all possible combinations between Poly release and Poly settle, then merge with existing table but only merge if those combination don't exist in existing table
+  Polys_total <- unique(c(Con_df_table$Poly_ID_Release, Con_df_table$Poly_ID_Settle))
+  temp_df <- data.frame(col1 = double(), col2 = double())
+  for (i in 1:3){
+    new <- c(Polys_total[1],Polys_total[i+1])
+    temp_df <- rbind(new, temp_df)
+    }
+  
+  View(data.frame(Polys_total))
+  temp_df <- data.frame(Doubles=double(),
+                   Ints=integer(),
+                   Factors=factor(),
+                   Logicals=logical(),
+                   Characters=character(),
+                   stringsAsFactors=FALSE)
+  
+  #May have to manually convert to adjacency matrix?
+
   #NO SHAPEFILE SECTION BECAUSE UNCLEAR HOW THAT WOULD BE USEFUL
   #I DON'T HAVE INDIVIDUAL METRICS YET...
-  
+  ?table
 }
 
 writeLines("Finished everything! Yay, yay, yay, you the best! \nClick here for dog: \nhttps://media.giphy.com/media/l2JhO5yaMLa93hVeM/giphy.gif") 
