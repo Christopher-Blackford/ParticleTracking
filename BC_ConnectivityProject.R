@@ -29,8 +29,8 @@ rm(list=ls())
 
 ###################Loading required packages:
 require(data.table); require(tidyverse); require(rgdal); require(rgeos)
-require(maptools); require(spatialEco); require(sp)
-#require(igraph);
+require(maptools); require(sp); require(igraph);
+#require(spatialEco);
 
 ###################Loading functions:
 source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/functions/my_point_in_poly.R")
@@ -39,9 +39,11 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/fun
 
 Cell_cutoff_threshold <- 0 #Threshold that determines how much percent the clipped cell needs to be compared to Sarah's extent to be included
 
-Create_cutoff_graph <- TRUE #Do you want to create a histogram of how many cells get cut off by how much
+Create_cutoff_graph <- FALSE #Do you want to create a histogram of how many cells get cut off by how much
 
-Calculate_Larvae_per_cell <- TRUE #Do you want to create a csv showing how many larvae are released in each cell
+Calculate_Larvae_per_cell <- FALSE #Do you want to create a csv showing how many larvae are released in each cell
+
+Create_All_poly_pairs <- FALSE
 
 pld <- c(30,60,120)
 
@@ -240,6 +242,8 @@ rm(my_table)
 ########################################################################
 #[6] Merging connectivity dataframes across years to get: 1) Dataframes describing connectivity 2) Shapefiles describing connectivity 
 
+#MIGHT HAVE TO INCORPORATE LONGER FILENAME TO INCLUDE CUTOFF THRESHOLD
+
 for (pld_time in 1:length(pld)){
   
   filenames <- list.files(path= paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/years"), pattern= ".csv", full.names=TRUE, recursive=T)
@@ -264,29 +268,107 @@ for (pld_time in 1:length(pld)){
   colnames(Con_df_All) <- gsub("\\(", "_", colnames(Con_df_All)); colnames(Con_df_All) <- gsub("\\)", "", colnames(Con_df_All))
   write.csv(Con_df_All, paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/Con_df_pld", pld[pld_time], ".csv"), row.names = FALSE)
   
+  #Preparing ajacency matrix to calculate centrality scores
+  #~~~~~~~
+  Polys_total <- unique(c(Con_df_All$Poly_ID_Release, Con_df_All$Poly_ID_Settle))
+  All_poly_pairs <- data.frame(col1 = double(), col2 = double())
+  
+  #Get all possible combinations between Poly release and Poly settle, then merge with existing table to make square adjacency matrix
+  #~~~~~~~
+  if (Create_All_poly_pairs == TRUE){
+    for (j in 1:length(Polys_total)){
+      for (i in 1:length(Polys_total)){
+        temp_row <- c(Polys_total[j],Polys_total[i])
+        All_poly_pairs <- rbind(temp_row, All_poly_pairs)
+      }
+      print(j/970)
+    }
+    rm(Polys_total, temp_row)
+    All_poly_pairs$included <- 1
+    colnames(All_poly_pairs)[1] <- "Poly_ID_Release"; colnames(All_poly_pairs)[2] <- "Poly_ID_Settle"
+    write.csv(All_poly_pairs, paste0("./BC_ConnectivityProject/BC_output/All_poly_pairs/All poly dataframe_Cutoff", Cell_cutoff_threshold, ".csv"), row.names = FALSE)
+    
+  }else{All_poly_pairs <- read.csv(paste0("./BC_ConnectivityProject/BC_output/All_poly_pairs/All poly dataframe_Cutoff", Cell_cutoff_threshold ,".csv"))}
+  #~~~~~~~
+  
+  ########################################################################
+  ####Connectivity matrix for raw larval transport
   Con_df_table <- Con_df_All[c("Poly_ID_Release", "Poly_ID_Settle", "mean_Freq")]
   
-  #Get all possible combinations between Poly release and Poly settle, then merge with existing table but only merge if those combination don't exist in existing table
-  Polys_total <- unique(c(Con_df_table$Poly_ID_Release, Con_df_table$Poly_ID_Settle))
-  temp_df <- data.frame(col1 = double(), col2 = double())
-  for (i in 1:3){
-    new <- c(Polys_total[1],Polys_total[i+1])
-    temp_df <- rbind(new, temp_df)
-    }
+  Con_df_table <- base::merge(Con_df_table, All_poly_pairs, by = c("Poly_ID_Release", "Poly_ID_Settle"), all.y=TRUE)
+  Con_df_table$mean_Freq[is.na(Con_df_table$mean_Freq)] <- 0
+  #Con_df_table$included <- NULL
   
-  View(data.frame(Polys_total))
-  temp_df <- data.frame(Doubles=double(),
-                   Ints=integer(),
-                   Factors=factor(),
-                   Logicals=logical(),
-                   Characters=character(),
-                   stringsAsFactors=FALSE)
+  #Creating connectivity matrix
+  Con_matrix <- t(matrix(Con_df_table$mean_Freq, nrow = length(unique(Con_df_table$Poly_ID_Release)), ncol = length(unique(Con_df_table$Poly_ID_Settle))))
+  colnames(Con_matrix) <- unique(Con_df_table$Poly_ID_Release); rownames(Con_matrix) <- unique(Con_df_table$Poly_ID_Settle)
+  #Con_dataframe <- as.data.frame(Con_matrix)
   
-  #May have to manually convert to adjacency matrix?
-
-  #NO SHAPEFILE SECTION BECAUSE UNCLEAR HOW THAT WOULD BE USEFUL
-  #I DON'T HAVE INDIVIDUAL METRICS YET...
-  ?table
+  EC_df <- eigen(t(Con_matrix), symmetric = FALSE)
+  Contribution <- Re(EC_df$vectors[,1])
+  
+  num_neg <- 0
+  for (i in 1:length(Contribution)){if (Contribution[i] < 0){num_neg <- num_neg+1}}#If your eigenvectors are all negative need to record this to make it positive
+  
+  if (num_neg == 0){#do nothing
+  }else if(num_neg == length(Contribution)){Contribution <- abs(Contribution)
+  }else{(print("Double check eigenvectors"))} #Making eigenvectors possitive if all negative. Only way to "stop" a process is to put this in a source file and designate that option
+  
+  my_graph <- igraph::graph_from_adjacency_matrix(Con_matrix, mode = list("directed"))#This is right! Directed means the matrix entry gives the strength of connection
+  #central_score <- igraph::eigen_centrality(my_graph, directed = TRUE)#Here, need directed to take the value of the connection into account
+  bet_score <- igraph::betweenness(my_graph, directed = TRUE)
+  
+  Con_df_table <- data.frame(Poly_ID = row.names(Con_matrix), Eigen_C = Contribution, Between_C = bet_score)
+  row.names(Con_df_table) <- 1:nrow(Con_df_table)
+  write.csv(Con_df_table, paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/Con_Freq_pld", pld[pld_time], ".csv"), row.names = FALSE)
+  
+  #Writing out shapefile
+  ConPoly_new <- sp::merge(ConPoly, Con_df_table, by = "Poly_ID")
+  #ConPoly_new <- spatialEco::sp.na.omit(ConPoly_new, col.name = "mean_Local_retention", margin=1) #Can turn off to look at all cells that don't have any retention
+  
+  shapefile_directory <- paste0("./BC_ConnectivityProject/BC_output/shapefiles/pld", pld[pld_time])
+  dir.create(shapefile_directory)
+  writeOGR(ConPoly_new, dsn = shapefile_directory, layer = paste0("Con_Freq_pld", pld[pld_time]),
+           driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+  
+  
+  ########################################################################
+  ####Connectivity matrix for percent larval transport
+  Con_df_table <- Con_df_All[c("Poly_ID_Release", "Poly_ID_Settle", "mean_Percent")]
+  
+  Con_df_table <- base::merge(Con_df_table, All_poly_pairs, by = c("Poly_ID_Release", "Poly_ID_Settle"), all.y=TRUE)
+  Con_df_table$mean_Percent[is.na(Con_df_table$mean_Percent)] <- 0
+  Con_df_table$mean_Percent <- Con_df_table$mean_Percent*100 #Need to do this so betweeness centrality will register. It's okay since what matters is the relative difference between cells
+  
+  #Creating connectivity matrix
+  Con_matrix <- t(matrix(Con_df_table$mean_Percent, nrow = length(unique(Con_df_table$Poly_ID_Release)), ncol = length(unique(Con_df_table$Poly_ID_Settle))))
+  colnames(Con_matrix) <- unique(Con_df_table$Poly_ID_Release); rownames(Con_matrix) <- unique(Con_df_table$Poly_ID_Settle)
+  Con_dataframe <- as.data.frame(Con_matrix)
+  
+  EC_df <- eigen(t(Con_matrix), symmetric = FALSE)
+  Contribution <- Re(EC_df$vectors[,1])
+  
+  num_neg <- 0
+  for (i in 1:length(Contribution)){if (Contribution[i] < 0){num_neg <- num_neg+1}}#If your eigenvectors are all negative need to record this to make it positive
+  
+  if (num_neg == 0){#do nothing
+  }else if(num_neg == length(Contribution)){Contribution <- abs(Contribution)
+  }else{(print("Double check eigenvectors"))} #Making eigenvectors possitive if all negative. Only way to "stop" a process is to put this in a source file and designate that option
+  
+  my_graph <- igraph::graph_from_adjacency_matrix(Con_matrix, mode = list("directed"))#This is right! Directed means the matrix entry gives the strength of connection
+  #central_score <- igraph::eigen_centrality(my_graph, directed = TRUE)#Here, need directed to take the value of the connection into account
+  bet_score <- igraph::betweenness(my_graph, directed = TRUE)
+  
+  Con_df_table <- data.frame(Poly_ID = row.names(Con_matrix), Eigen_C = Contribution, Between_C = bet_score)
+  row.names(Con_df_table) <- 1:nrow(Con_df_table)
+  write.csv(Con_df_table, paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time], "/Con_Percent_pld", pld[pld_time], ".csv"), row.names = FALSE)
+  
+  #Writing out shapefile
+  ConPoly_new <- sp::merge(ConPoly, Con_df_table, by = "Poly_ID")
+  
+  writeOGR(ConPoly_new, dsn = shapefile_directory, layer = paste0("Con_Percent_pld", pld[pld_time]),
+           driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+  
 }
 
 writeLines("Finished everything! Yay, yay, yay, you the best! \nClick here for dog: \nhttps://media.giphy.com/media/l2JhO5yaMLa93hVeM/giphy.gif") 
