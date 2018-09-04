@@ -66,7 +66,7 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/1_L
 BC_project_extent <- readOGR("./BC_ConnectivityProject/BC_StudyExtent/Sarah_extent", "PU_ResizedTo10km")
 My_BC_projection <- proj4string(BC_project_extent)
 #Loading Remi's grid where larvae were released
-grid <- readOGR("./cuke_present/StudyExtent/Starting_grid", "grid")
+grid <- readOGR("./BC_ConnectivityProject/BC_StudyExtent/Remi_grid", "grid")
 NAD_projection <- proj4string(grid)
 
 #Dissolve into one polygon since so you can change grid dimensions
