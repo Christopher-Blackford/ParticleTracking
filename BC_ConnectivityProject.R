@@ -89,16 +89,16 @@ if(Create_cutoff_graph == TRUE){source("./BC_ConnectivityProject/subcode/Cutoff 
 
 #Removing cells that weren't a certain percentage of 10x10km
 ConPoly <- ConPoly[(ConPoly$Area >= Cell_cutoff_threshold),]
-writeOGR(ConPoly, dsn = "./BC_ConnectivityProject/BC_StudyExtent/BCProject_Extent", layer = paste0("BCProject_Extent_", Cell_cutoff_threshold), 
-         driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
+#writeOGR(ConPoly, dsn = "./BC_ConnectivityProject/BC_StudyExtent/BCProject_Extent", layer = paste0("BCProject_Extent_", Cell_cutoff_threshold), 
+ #        driver = "ESRI Shapefile", verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
 
 rm(BC_project_extent, grid, temp, Poly_ID) #If code doesn't work, this may be the culprit
 ########################################################################
 ########################################################################
 ########################################################################
 #[3a] Identifying settlement locations and linking to release locations
-#pld_time <- 1
-#year_time <- 1  
+pld_time <- 1
+year_time <- 1  
 
 #####Initializing
 memory.limit(size=15000) #need to manually increase memory limit from default to process across years/pld
@@ -154,7 +154,7 @@ for (pld_time in 1:length(pld)){
     
     ########################################################################
     ########################################################################
-    #[4] Creating connectivity dataframes
+    #[4] Identifying locations of larval release and settlement
     
     #Showing where each larvae begings and ends
     Release_df <- subset(Con_df, select = c(long0, lat0, Z0, larvae_ID, rday))
@@ -179,13 +179,22 @@ for (pld_time in 1:length(pld)){
       counted <- dplyr::count(Released_dataframe, Poly_ID)
       counted <- dplyr::rename(counted, Larvae_release_over_season = n)
       counted$Larvae_release_daily <- counted$Larvae_release_over_season/61 #Average should be 100 I think (400 for 20x20 = 100 for 10x10)
-      write.csv(counted, "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv")
+      write.csv(counted, "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv", row.names = FALSE)
       
+      png("./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae release per cell - daily.png", width = 1200, height = 800)
+      hist(counted$Larvae_release_daily, breaks = seq(from = 0, to = 1200, by = 50), main = "Number of larvae released (daily) per cell", xlab = "Number of larvae released")
+      abline(v = mean(counted$Larvae_release_daily), col = "red"); text(x = 800, y= 250, labels = paste0("Average = ", mean(counted$Larvae_release_daily)))
+      dev.off()
+      
+      png("./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae release per cell - total.png", width = 1200, height = 800)
+      hist(counted$Larvae_release_over_season, breaks = seq(from = 0, to = 70000, by = 7000), main = "Number of larvae released (total) per cell", xlab = "Number of larvae released")
+      abline(v = mean(counted$Larvae_release_over_season), col = "red"); text(x = 50000, y= 500, labels = paste0("Average = ", mean(counted$Larvae_release_over_season)))
+      dev.off()
       #Released_dataframe <- dplyr::distinct(Released_dataframe, Poly_ID, .keep_all = TRUE)
       #Released_layer <- sp::merge(ConPoly, Released_dataframe, by = "Poly_ID", all.x = FALSE)
       #writeOGR(Released_layer, dsn = "./BC_ConnectivityProject/BC_StudyExtent/Larvae_release", layer = "Larvae_release_grid", driver = "ESRI Shapefile", 
        #        verbose = TRUE, overwrite = TRUE, morphToESRI = TRUE)
-      }
+      }else{counted <- read.csv("./BC_ConnectivityProject/BC_StudyExtent/Larvae_release/csv/Larvae_per_cell.csv")}
     
     #Associate settled points with where they settled 
     xy <- subset(Settle_df, select = c(long, lat))
@@ -202,26 +211,23 @@ for (pld_time in 1:length(pld)){
     Con_df <- Con_df[complete.cases(Con_df[,"Poly_ID.x"]),]
     Released_larvae_df <- Con_df[complete.cases(Con_df[,"Poly_ID.y"]),]
     
-    ########################################################################
-    #[4a-b] BC Controlling for biased release
-    #IGNORE FOR NOW
-    #if (Control_for_bias_release == TRUE){source("K:/Christopher_PhD/Github/ParticleTracking/BC_ConnectivityProject/BC_Controlling_for_biased_release.R")}else {Released_larvae_df <- Con_df[complete.cases(Con_df[,"Poly_ID.y"]),]}
 
     ########################################################################
     ########################################################################
     ########################################################################
     #[5] Creating connectivity metrics
     
-      my_table <- table(Released_larvae_df$Poly_ID.x, Released_larvae_df$Poly_ID.y)
+      my_table <- table(Released_larvae_df$Poly_ID.x, Released_larvae_df$Poly_ID.y) #Counts number of larvae moving from Poly.X to Poly.y
       
       #As dataframe
       df <- as.data.frame(my_table)
       df$Var1 <- as.character(df$Var1); df$Var1 <- as.numeric(df$Var1); df$Var2 <- as.character(df$Var2); df$Var2 <- as.numeric(df$Var2)
       df <- dplyr::rename(df, Poly_ID_Release = Var1, Poly_ID_Settle = Var2)
       
+      
       #Can probably remove these columns for now
       df <- base::merge(df, counted, by.x = "Poly_ID_Release", by.y = "Poly_ID") #Make sure number of larvae being released from counted is accurate to the Release_df
-      df$Percent <- (df$Freq/df$Larvae_release_over_season)*100
+      df$Percent <- (df$Freq/(df$Larvae_release_over_season))*100
 
       #Writing out csv transforms from shapefile to the attribute table of that shapefile
       my_directory <- paste0("./BC_ConnectivityProject/BC_output/Con_df/pld", pld[pld_time])
@@ -236,7 +242,6 @@ for (pld_time in 1:length(pld)){
 
 rm(my_table)
 
-########################################################################
 ########################################################################
 ########################################################################
 ########################################################################
@@ -281,7 +286,7 @@ for (pld_time in 1:length(pld)){
         temp_row <- c(Polys_total[j],Polys_total[i])
         All_poly_pairs <- rbind(temp_row, All_poly_pairs)
       }
-      print(j/970)
+      print(j/length(Polys_total))
     }
     rm(Polys_total, temp_row)
     All_poly_pairs$included <- 1
