@@ -37,7 +37,7 @@ source("K:/Christopher_PhD/Github/ParticleTracking/Particle_Tracking_subcode/fun
 
 ###################Initialize run with these important parameters
 
-Cell_cutoff_threshold <- 0 #Threshold that determines how much percent the clipped cell needs to be compared to Sarah's extent to be included
+Cell_cutoff_threshold <- 0 #Threshold determining percent the clipped cell needs to be compared to Sarah's extent to be included. 0 = All cells included. 1 = Only cells completely within Sarah's extent included.
 
 Create_cutoff_graph <- FALSE #Do you want to create a histogram of how many cells get cut off by how much
 
